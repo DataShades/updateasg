@@ -11,6 +11,8 @@ It needs to be run from an instance within the ASG that you've performed some up
 EG: a web node within the ASG you want to update. The script won't churn the node you're on if you choose to churn instances.  
 1. Copy the script to /sbin/updateasg  
 2. sudo chmod +x /sbin/updateasg  
+3. Ensure [jq](https://stedolan.github.io/jq/download/) is installed before running the script
+ 
 ##Usage
 As explained in the Installation section, the script needs to run from a node that the target ASG launches, such as a web node.
 
