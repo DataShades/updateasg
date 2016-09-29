@@ -27,7 +27,8 @@ placement=$(wget -q -O - http://169.254.169.254/latest/meta-data/placement/avail
 region=$(echo ${placement%?})
 
 myid=$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)
-volume=$(aws ec2 describe-volumes --filters Name=attachment.instance-id,Values="${myid}" Name=attachment.device,Values='/dev/xvda' --region $region)
+myvol=$(wget -q -O - http://169.254.169.254/latest/meta-data/block-device-mapping/ami)
+volume=$(aws ec2 describe-volumes --filters Name=attachment.instance-id,Values="${myid}" Name=attachment.device,Values="${myvol}" --region $region)
 vol_id=$(echo ${volume} | jq '.Volumes[].VolumeId' | tr -d '"')
 vol_size=$(echo ${volume} | jq '.Volumes[].Size' | tr -d '"')
 
