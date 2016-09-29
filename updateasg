@@ -1,7 +1,5 @@
 #!/bin/bash
 #
-# Author:: Shane Davis (<shane.davis@linkdigital.com.au>)
-#
 # This script snapshots the current instance volume, and updates the ASG from it
 ##
 # Copyright 2016, Link Digital
@@ -31,6 +29,7 @@ region=$(echo ${placement%?})
 myid=$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)
 volume=$(aws ec2 describe-volumes --filters Name=attachment.instance-id,Values="${myid}" Name=attachment.device,Values='/dev/xvda' --region $region)
 vol_id=$(echo ${volume} | jq '.Volumes[].VolumeId' | tr -d '"')
+vol_size=$(echo ${volume} | jq '.Volumes[].Size' | tr -d '"')
 
 instance=$(aws ec2 describe-instances --region $region --instance-ids $myid)
 secgrps=$(echo ${instance} | jq '.Reservations[].Instances[].SecurityGroups[].GroupId' | tr -d '"')
@@ -67,11 +66,11 @@ function create_snapshot
 #
 function create_ami
 {
-	echo -ne ".Creating AMI..."
-	ami=$(aws ec2 register-image --name "AUTO-WEB-GM_${DATE}" --root-device-name "/dev/sda1" --architecture "x86_64" --virtualization-type "hvm" --region $region --block-device-mappings "{\"DeviceName\": \"/dev/sda1\",\"Ebs\":{\"DeleteOnTermination\": true,\"VolumeType\":\"gp2\",\"VolumeSize\":8,\"SnapshotId\": \"${snapid}\"}}" | jq '.ImageId' | tr -d '"')
+       	echo -ne ".Creating AMI..."
+       	ami=$(aws ec2 register-image --name "AUTO-WEB-GM_${DATE}" --root-device-name "/dev/sda1" --architecture "x86_64" --virtualization-type "hvm" --region $region --block-device-mappings "{\"DeviceName\": \"/dev/sda1\",\"Ebs\":{\"DeleteOnTermination\": true,\"VolumeType\":\"gp2\",\"VolumeSize\":${vol_size},\"SnapshotId\": \"${snapid}\"}}" | jq '.ImageId' | tr -d '"')
 
-	launchid=$(aws autoscaling create-launch-configuration --launch-configuration-name "AUTO-WEB-GM_${DATE}" --image-id ${ami} --instance-type ${instsize}  --security-groups ${secgrps} --key-name ${keyname} --block-device-mappings "{\"DeviceName\": \"/dev/sda1\",\"Ebs\":{\"DeleteOnTermination\": true,\"VolumeType\":\"gp2\",\"VolumeSize\":8,\"SnapshotId\": \"$snapid\"}}" --region $region)
-	echo "Done."
+       	launchid=$(aws autoscaling create-launch-configuration --launch-configuration-name "AUTO-WEB-GM_${DATE}" --image-id ${ami} --instance-type ${instsize}  --security-groups ${secgrps} --key-name ${keyname} --block-device-mappings "{\"DeviceName\": \"/dev/sda1\",\"Ebs\":{\"DeleteOnTermination\": true,\"VolumeType\":\"gp2\",\"VolumeSize\":${vol_size},\"SnapshotId\": \"$snapid\"}}" --region $region)
+       	echo "Done."
 }
 
 # Updates selected ASG with new Launch config
